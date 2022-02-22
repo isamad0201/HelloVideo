@@ -14,7 +14,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -32,6 +34,7 @@ public class Database extends AppCompatActivity {
 
     private static final String GET_TAG = "GET";
     private static final String UPLOAD_TAG = "UPLOAD";
+    private static final String COLLECTION_NAME = "all_videos";
 
     public static void upload(Uri uri, Context context) {
 
@@ -69,11 +72,11 @@ public class Database extends AppCompatActivity {
         vid.put("likes", 0);
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("all_videos").document(vidUniqueId).set(vid).addOnSuccessListener(
+        db.collection(COLLECTION_NAME).document(vidUniqueId).set(vid).addOnSuccessListener(
                 new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Toast.makeText(context,"nwe Upload success",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context,"new upload success",Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -82,7 +85,7 @@ public class Database extends AppCompatActivity {
     public static ArrayList getData(Context context) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         ArrayList<VideoModel> videos = new ArrayList<>();
-        db.collection("all_videos").get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+        db.collection(COLLECTION_NAME).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
             @Override
             public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                 if (queryDocumentSnapshots.isEmpty()) {
@@ -100,6 +103,29 @@ public class Database extends AppCompatActivity {
             }
         });
         return videos;
+    }
+
+    public static void updateLikes (boolean increment, String documentName) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference documentReference = db.collection(COLLECTION_NAME).document(documentName);
+
+// Atomically increment the population of the city by 50.
+        if(increment == true)
+            documentReference.update("likes", FieldValue.increment(1));
+        else
+            documentReference.update("likes", FieldValue.increment(-1));
+    }
+
+    public static long getLikes (String documentName) {
+        long  likes = -1;
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection(COLLECTION_NAME).document(documentName).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                 //
+            }
+        });
+        return likes;
     }
 
 }
