@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "252410949048",
+    "project_id": "hello-video-f3d0d",
+    "storage_bucket": "hello-video-f3d0d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252410949048:android:971583a0570e9e7630f34d",
+        "android_client_info": {
+          "package_name": "com.example.android.hellovideo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "252410949048-9b9lk32f8v2cj8id1uf7ece55jjgerhq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhlHa6RPikDtWhaoeAumzdGpmlC3mjJOU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "252410949048-9b9lk32f8v2cj8id1uf7ece55jjgerhq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
