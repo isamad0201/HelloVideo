@@ -37,6 +37,9 @@ public class Auth {
                             data.put("name", name);
                             String documentPath = COLLECTION_USER+"/"+user.getUid();
                             Database.addDocument(documentPath, data, "SignedUp Successfully", context);
+                            UserData.name = name;
+                            UserData.email = email;
+                            UserData.userId = mAuth.getUid();
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w("TAG", "createUserWithEmail:failure", task.getException());
@@ -56,6 +59,7 @@ public class Auth {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d("TAG", "signInWithEmail:success");
                             Toast.makeText(context, "Logged in successfully",Toast.LENGTH_SHORT).show();
+                            Database.setUserData("users"+"/"+Auth.getUId(),context);
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w("TAG", "signInWithEmail:failure", task.getException());
@@ -82,4 +86,5 @@ public class Auth {
         else
             return "";
     }
+
 }

@@ -18,6 +18,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,12 +38,17 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
+        if (Auth.isLoggedIn()) {
+            Database.setUserData("users"+"/"+Auth.getUId(), MainActivity.this);
+        }
         viewPager2 = (ViewPager2) findViewById(R.id.viewpager);
         videos = Database.getData(MainActivity.this);
         profileButton = findViewById(R.id.profileButton);
         likedVideos = Database.getLikedVideos();
 
         setProfileButtonListner();
+
+
 
         addDefaultVideoUrl(videos);
         Collections.shuffle(videos);
@@ -58,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -84,11 +91,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addDefaultVideoUrl (ArrayList videos) {
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","", 0));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4","", 0));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4","", 0));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4","", 0));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4","", 0));
+        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","", 0,"u1",""));
+        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4","", 0,"u2",""));
+        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4","", 0,"u3",""));
+        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4","", 0,"u4",""));
+        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4","", 0,"u5",""));
     }
 
 

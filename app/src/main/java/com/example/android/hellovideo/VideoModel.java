@@ -7,13 +7,17 @@ import java.lang.reflect.Member;
 public class VideoModel {
 
     private String videoUrl,videoId;
+    private String uploderId;
+    private String uploderName;
     private long likes;
 //    private int views;
 
-    public VideoModel(String videoUrl, String videoId, long likes) {
+    public VideoModel(String videoUrl, String videoId, long likes, String uploderName, String uploderId) {
         this.videoUrl = videoUrl;
         this.videoId = videoId;
         this.likes = likes;
+        this.uploderName = uploderName;
+        this.uploderId = uploderId;
     }
 
     public String getVideoUrl() {
@@ -38,6 +42,22 @@ public class VideoModel {
 
     public void setLikes(long likes) {
         this.likes = likes;
+    }
+
+    public String getUploderId() {
+        return uploderId;
+    }
+
+    public void setUploderId(String uploderId) {
+        this.uploderId = uploderId;
+    }
+
+    public String getUploderName() {
+        return uploderName;
+    }
+
+    public void setUploderName(String uploderName) {
+        this.uploderName = uploderName;
     }
 
 

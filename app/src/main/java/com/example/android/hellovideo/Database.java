@@ -25,6 +25,8 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import org.w3c.dom.Document;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -66,7 +68,8 @@ public class Database extends AppCompatActivity {
                 Map<String, Object> vid = new HashMap<>();
                 vid.put("UrlPath", downloadUri.toString());
                 vid.put("likes", 0);
-                vid.put("uplodedBy", Auth.getUId());
+                vid.put("uploderId", UserData.userId);
+                vid.put("uploderName", UserData.name);
                 addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
                 Map<String, Object> nullMap = new HashMap<>();
                 String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
@@ -103,7 +106,8 @@ public class Database extends AppCompatActivity {
                     for (DocumentSnapshot document : documents) {
                         if (document.exists()) {
                             Map<String, Object> vid = document.getData();
-                            videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes")));
+                            videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
+                                    vid.get("uploderName").toString(), vid.get("uploderId").toString()));
                             Log.d(GET_TAG,document.getId());
                         }
                     }
@@ -147,6 +151,32 @@ public class Database extends AppCompatActivity {
             }
         });
         return likedVideos;
+    }
+
+    public static Map<String, Object> setUserData(String documentPath, Context context) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Map<String, Object> data = new HashMap<>();
+
+        db.document(documentPath).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if (documentSnapshot.exists()) {
+                    Map<String ,Object> documentData = documentSnapshot.getData();
+                    Log.d("USER_DATA",String.valueOf(documentData.size())+"SIZE");
+                    for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+                        data.put(entry.getKey(), entry.getValue());
+                        Log.d("USER_DATA",entry.getKey()+"="+entry.getValue());
+                    }
+                    UserData.userId = Auth.getUId();
+                    UserData.name = (String) documentData.get("name");
+                    UserData.email = (String) documentData.get("email");
+                }
+                else {
+                    Toast.makeText(context, "Failed to get User data", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        return data;
     }
 
 }

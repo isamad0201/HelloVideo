@@ -105,7 +105,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
         VideoView videoView;
         ProgressBar progressBar;
         Button uploadButton, likeButton;
-        TextView numberOfLikes;
+        TextView numberOfLikes, uploaderName;
         public MyViewHolder(@NonNull View itemView) {
             super(itemView);
 
@@ -114,6 +114,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
             uploadButton = itemView.findViewById(R.id.uploadButton);
             numberOfLikes = itemView.findViewById(R.id.numberOfLikes);
             likeButton = itemView.findViewById(R.id.likeButton);
+            uploaderName = itemView.findViewById(R.id.uploderNameTextView);
         }
 
         void setData(VideoModel videoModel) {
@@ -125,6 +126,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
             else {
                 likeButton.setBackgroundResource(R.drawable.like_button);
             }
+
+            uploaderName.setText("@"+videoModel.getUploderName());
 
             videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
