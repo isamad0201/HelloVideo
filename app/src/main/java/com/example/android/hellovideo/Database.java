@@ -15,6 +15,7 @@ import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -26,6 +27,8 @@ import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -87,19 +90,6 @@ public class Database extends AppCompatActivity {
     }
 
 
-    public static void uploadInFireStore(Map<String, Object> data, Context context,String collectionName, String documentName,String message) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection(collectionName).document(documentName).set(data).addOnSuccessListener(
-                new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        if(message != "")
-                            Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
-                    }
-                }
-        );
-    }
-
     public static ArrayList getData(Context context) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         ArrayList<VideoModel> videos = new ArrayList<>();
@@ -141,20 +131,22 @@ public class Database extends AppCompatActivity {
             documentReferenceUsers.delete();
         }
 
-        // TODO : Add OnsuccessListner and OnFailureListner
-
     }
 
-    public static long getLikes (String documentName) {
-        long  likes = -1;
+    public static HashSet<String> getLikedVideos () {
+        HashSet<String> likedVideos = new HashSet<>();
+        String path = "users"+"/"+Auth.getUId()+"/"+"liked_videos";
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection(COLLECTION_NAME).document(documentName).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+        db.collection(path).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
             @Override
-            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                 //
+            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+                for (DocumentSnapshot document : documents) {
+                    likedVideos.add(document.getId());
+                }
             }
         });
-        return likes;
+        return likedVideos;
     }
 
 }

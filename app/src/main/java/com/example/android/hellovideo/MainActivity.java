@@ -17,12 +17,14 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PICK_FILE = 1;
     ViewPager2 viewPager2;
     ArrayList<VideoModel> videos;
+    HashSet<String> likedVideos;
     Button profileButton;
 
     @Override
@@ -38,12 +40,13 @@ public class MainActivity extends AppCompatActivity {
         viewPager2 = (ViewPager2) findViewById(R.id.viewpager);
         videos = Database.getData(MainActivity.this);
         profileButton = findViewById(R.id.profileButton);
+        likedVideos = Database.getLikedVideos();
 
         setProfileButtonListner();
 
         addDefaultVideoUrl(videos);
         Collections.shuffle(videos);
-        viewPager2.setAdapter(new VideoAdapter(videos, MainActivity.this));
+        viewPager2.setAdapter(new VideoAdapter(videos, likedVideos, MainActivity.this));
 
     }
 
