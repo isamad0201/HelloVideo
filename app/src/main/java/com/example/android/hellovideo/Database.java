@@ -68,8 +68,8 @@ public class Database extends AppCompatActivity {
                 Map<String, Object> vid = new HashMap<>();
                 vid.put("UrlPath", downloadUri.toString());
                 vid.put("likes", 0);
-                vid.put("uploderId", UserData.userId);
-                vid.put("uploderName", UserData.name);
+                vid.put("uploaderId", UserData.userId);
+                vid.put("uploaderName", UserData.name);
                 addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
                 Map<String, Object> nullMap = new HashMap<>();
                 String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
@@ -107,7 +107,7 @@ public class Database extends AppCompatActivity {
                         if (document.exists()) {
                             Map<String, Object> vid = document.getData();
                             videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
-                                    vid.get("uploderName").toString(), vid.get("uploderId").toString()));
+                                    vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
                             Log.d(GET_TAG,document.getId());
                         }
                     }
