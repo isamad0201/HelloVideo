@@ -35,6 +35,7 @@ public class Database extends AppCompatActivity {
     private static final String GET_TAG = "GET";
     private static final String UPLOAD_TAG = "UPLOAD";
     private static final String COLLECTION_NAME = "all_videos";
+    private static final String VIDEO_UPLOAD_SUCCESS_MESSAGE = "Video Uploaded Successfully";
 
     public static void upload(Uri uri, Context context) {
 
@@ -57,26 +58,24 @@ public class Database extends AppCompatActivity {
             if (task.isSuccessful()) {
                 Uri downloadUri = task.getResult();
                 Log.d("UPLOAD",downloadUri.toString());
-                uploadVideoUrl(downloadUri.toString(), context, vidUniqueId);
-                Toast.makeText(context, "success", Toast.LENGTH_SHORT).show();
+
+                Map<String, Object> vid = new HashMap<>();
+                vid.put("UrlPath", downloadUri.toString());
+                vid.put("likes", 0);
+                uploadInFireStore(vid, context, COLLECTION_NAME, vidUniqueId, VIDEO_UPLOAD_SUCCESS_MESSAGE);
             }
         });
     }
 
-    private static void uploadVideoUrl(String videoUrl, Context context, String vidUniqueId) {
 
-
-        Map<String, Object> vid = new HashMap<>();
-
-        vid.put("UrlPath", videoUrl);
-        vid.put("likes", 0);
-
+    public static void uploadInFireStore(Map<String, Object> data, Context context,String collectionName, String documentName,String message) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection(COLLECTION_NAME).document(vidUniqueId).set(vid).addOnSuccessListener(
+        db.collection(collectionName).document(documentName).set(data).addOnSuccessListener(
                 new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Toast.makeText(context,"new upload success",Toast.LENGTH_SHORT).show();
+                        if(message != "")
+                            Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -106,6 +105,9 @@ public class Database extends AppCompatActivity {
     }
 
     public static void updateLikes (boolean increment, String documentName) {
+        if (documentName == "") {
+            return;
+        }
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         DocumentReference documentReference = db.collection(COLLECTION_NAME).document(documentName);
 
