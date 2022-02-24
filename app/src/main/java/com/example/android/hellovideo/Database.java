@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
@@ -62,9 +63,27 @@ public class Database extends AppCompatActivity {
                 Map<String, Object> vid = new HashMap<>();
                 vid.put("UrlPath", downloadUri.toString());
                 vid.put("likes", 0);
-                uploadInFireStore(vid, context, COLLECTION_NAME, vidUniqueId, VIDEO_UPLOAD_SUCCESS_MESSAGE);
+                vid.put("uplodedBy", Auth.getUId());
+                addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+                Map<String, Object> nullMap = new HashMap<>();
+                String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
+                addDocument(documentPath, nullMap, "",context);
             }
         });
+    }
+
+    public static void addDocument(String documentPath, Map<String, Object> data, String message, Context context) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference documentReference = db.document(documentPath);
+        documentReference.set(data).addOnSuccessListener(
+                new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        if(message != "")
+                            Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
 
@@ -104,18 +123,26 @@ public class Database extends AppCompatActivity {
         return videos;
     }
 
-    public static void updateLikes (boolean increment, String documentName) {
-        if (documentName == "") {
+    public static void updateLikes (boolean increment, String vidUniqueId) {
+        if (vidUniqueId == "") {
             return;
         }
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference documentReference = db.collection(COLLECTION_NAME).document(documentName);
+        DocumentReference documentReferenceVideos = db.collection(COLLECTION_NAME).document(vidUniqueId);
+        String documentPath = "users"+"/"+Auth.getUId()+"/"+"liked_videos"+"/"+vidUniqueId;
+        DocumentReference documentReferenceUsers = db.document(documentPath);
 
-// Atomically increment the population of the city by 50.
-        if(increment == true)
-            documentReference.update("likes", FieldValue.increment(1));
-        else
-            documentReference.update("likes", FieldValue.increment(-1));
+        if(increment == true) {
+            documentReferenceVideos.update("likes", FieldValue.increment(1));
+            documentReferenceUsers.set(new HashMap<>());
+        }
+        else {
+            documentReferenceVideos.update("likes", FieldValue.increment(-1));
+            documentReferenceUsers.delete();
+        }
+
+        // TODO : Add OnsuccessListner and OnFailureListner
+
     }
 
     public static long getLikes (String documentName) {

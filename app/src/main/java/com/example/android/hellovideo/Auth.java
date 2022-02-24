@@ -35,7 +35,8 @@ public class Auth {
                             Map<String, Object> data = new HashMap<>();
                             data.put("email", email);
                             data.put("name", name);
-                            Database.uploadInFireStore(data, context,COLLECTION_USER ,user.getUid(), "SignedUp Successfully");
+                            String documentPath = COLLECTION_USER+"/"+user.getUid();
+                            Database.addDocument(documentPath, data, "SignedUp Successfully", context);
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w("TAG", "createUserWithEmail:failure", task.getException());
@@ -54,7 +55,6 @@ public class Auth {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d("TAG", "signInWithEmail:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
                             Toast.makeText(context, "Logged in successfully",Toast.LENGTH_SHORT).show();
                         } else {
                             // If sign in fails, display a message to the user.
@@ -74,5 +74,12 @@ public class Auth {
         else {
             return true;
         }
+    }
+    public static String getUId() {
+        if(mAuth.getCurrentUser() != null) {
+            return mAuth.getUid();
+        }
+        else
+            return "";
     }
 }

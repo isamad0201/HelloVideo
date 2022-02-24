@@ -58,7 +58,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
         holder.uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectAndUpload(context);
+                MainActivity.selectAndUpload(context);
             }
         });
 
@@ -79,13 +79,14 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
     public int getItemCount() {
         return videos.size();
     }
-    public void selectAndUpload(Activity context) {
-        Intent galleryIntent = new Intent(Intent.ACTION_PICK,
-                android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
-        context.startActivityForResult(galleryIntent, PICK_FILE);
 
-        // its onActivityResult() is in MainActivity
-    }
+//    public void selectAndUpload(Activity context) {
+//        Intent galleryIntent = new Intent(Intent.ACTION_PICK,
+//                android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+//        context.startActivityForResult(galleryIntent, PICK_FILE);
+//
+//        // its onActivityResult() is in MainActivity
+//    }
 
     private void updateLikeStatus (final MyViewHolder holder, int position) {
         long likes = Long.parseLong(holder.numberOfLikes.getText().toString());

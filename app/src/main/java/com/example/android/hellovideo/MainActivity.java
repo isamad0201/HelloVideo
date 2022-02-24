@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -69,6 +70,14 @@ public class MainActivity extends AppCompatActivity {
             }
 
         }
+    }
+
+    public static void selectAndUpload(Activity context) {
+        Intent galleryIntent = new Intent(Intent.ACTION_PICK,
+                android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
+        context.startActivityForResult(galleryIntent, PICK_FILE);
+
+        // its onActivityResult() is in MainActivity
     }
 
     private void addDefaultVideoUrl (ArrayList videos) {
