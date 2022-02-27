@@ -45,6 +45,7 @@ public class Auth {
                             Log.w("TAG", "createUserWithEmail:failure", task.getException());
                             Toast.makeText(context, "Authentication failed.", Toast.LENGTH_SHORT).show();
                         }
+                        MainActivity.adapter.notifyDataSetChanged();
                     }
                 });
     }
@@ -59,13 +60,26 @@ public class Auth {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d("TAG", "signInWithEmail:success");
                             Toast.makeText(context, "Logged in successfully",Toast.LENGTH_SHORT).show();
-                            Database.setUserData("users"+"/"+Auth.getUId(),context);
+                            Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                                @Override
+                                public void onComplete() {
+
+                                }
+                            }
+                            , true);
+                            Database.getLikedVideos(new FirebaseResultListener() {
+                                @Override
+                                public void onComplete() {
+                                    MainActivity.adapter.notifyDataSetChanged();
+                                }
+                            });
                         } else {
                             // If sign in fails, display a message to the user.
                             Log.w("TAG", "signInWithEmail:failure", task.getException());
                             Toast.makeText(context, "Authentication failed.",
                                     Toast.LENGTH_SHORT).show();
                         }
+                        MainActivity.adapter.notifyDataSetChanged();
                     }
                 });
     }
@@ -87,4 +101,9 @@ public class Auth {
             return "";
     }
 
+    public static void logout() {
+        UserData.clear();
+        mAuth.signOut();
+        MainActivity.adapter.notifyDataSetChanged();
+    }
 }

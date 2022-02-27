@@ -12,7 +12,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Adapter;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -23,10 +25,12 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
 
     private static final int PICK_FILE = 1;
-    ViewPager2 viewPager2;
-    ArrayList<VideoModel> videos;
-    HashSet<String> likedVideos;
+    static ViewPager2 viewPager2;
+    static ArrayList<VideoModel> videos;
+    static HashSet<String> likedVideos;
     Button profileButton;
+    static ProgressBar progressBar;
+    static VideoAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,21 +42,18 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        if (Auth.isLoggedIn()) {
-            Database.setUserData("users"+"/"+Auth.getUId(), MainActivity.this);
-        }
+        progressBar = findViewById(R.id.progressBarMainPage);
+        progressBar.setVisibility(View.VISIBLE);
+
         viewPager2 = (ViewPager2) findViewById(R.id.viewpager);
-        videos = Database.getData(MainActivity.this);
+//        videos = Database.getData(MainActivity.this);
+        this.setVideos();
         profileButton = findViewById(R.id.profileButton);
-        likedVideos = Database.getLikedVideos();
 
         setProfileButtonListner();
 
-
-
         addDefaultVideoUrl(videos);
-        Collections.shuffle(videos);
-        viewPager2.setAdapter(new VideoAdapter(videos, likedVideos, MainActivity.this));
+
 
     }
 
@@ -60,10 +61,33 @@ public class MainActivity extends AppCompatActivity {
         profileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                if(! Auth.isLoggedIn()) {
+                    ShowDialogBox.showLoginDialogBox(MainActivity.this);
+                }
+                else {
+                    Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+                    intent.putExtra("Uid", Auth.getUId());
+                    startActivity(intent);
+                }
             }
         });
     }
+
+    private void setVideos() {
+        videos = Database.getData(MainActivity.this, new FirebaseResultListener() {
+            @Override
+            public void onComplete() {
+                Collections.shuffle(videos);
+                progressBar.setVisibility(View.INVISIBLE);
+                adapter = new VideoAdapter(MainActivity.this);
+                viewPager2.setAdapter(adapter);
+                Log.d("DEBUG","in listener");
+            }
+        });
+    }
+
+
+
 
 
     @Override
@@ -91,11 +115,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addDefaultVideoUrl (ArrayList videos) {
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","", 0,"u1",""));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4","", 0,"u2",""));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4","", 0,"u3",""));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4","", 0,"u4",""));
-        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4","", 0,"u5",""));
+//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","", 0,"u1",""));
+//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4","", 0,"u2",""));
+//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4","", 0,"u3",""));
+//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4","", 0,"u4",""));
+//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4","", 0,"u5",""));
     }
 
 

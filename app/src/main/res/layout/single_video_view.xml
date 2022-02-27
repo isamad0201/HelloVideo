@@ -78,7 +78,7 @@
         android:clickable="true"
         android:text="ABC"
         android:textColor="#00d9d9"
-        android:textSize="30dp"
+        android:textSize="20dp"
         android:focusable="true"
         tools:ignore="MissingConstraints,OnClick"
         app:layout_constraintBottom_toBottomOf="parent"

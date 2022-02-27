@@ -1,21 +1,16 @@
 package com.example.android.hellovideo;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.Continuation;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -25,12 +20,9 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import org.w3c.dom.Document;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -68,12 +60,29 @@ public class Database extends AppCompatActivity {
                 Map<String, Object> vid = new HashMap<>();
                 vid.put("UrlPath", downloadUri.toString());
                 vid.put("likes", 0);
-                vid.put("uploaderId", UserData.userId);
-                vid.put("uploaderName", UserData.name);
-                addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
-                Map<String, Object> nullMap = new HashMap<>();
-                String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
-                addDocument(documentPath, nullMap, "",context);
+                if(UserData.name == null) {
+                    Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                        @Override
+                        public void onComplete() {
+                            vid.put("uploaderId", UserData.userId);
+                            vid.put("uploaderName", UserData.name);
+                            addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+                            Map<String, Object> nullMap = new HashMap<>();
+                            String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
+                            addDocument(documentPath, nullMap, "",context);
+                        }
+                    }
+                    , true);
+                }
+                else {
+                    vid.put("uploaderId", UserData.userId);
+                    vid.put("uploaderName", UserData.name);
+                    addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+                    Map<String, Object> nullMap = new HashMap<>();
+                    String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
+                    addDocument(documentPath, nullMap, "",context);
+                }
+
             }
         });
     }
@@ -93,7 +102,7 @@ public class Database extends AppCompatActivity {
     }
 
 
-    public static ArrayList getData(Context context) {
+    public static ArrayList getData(Context context, FirebaseResultListener firebaseResultListener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         ArrayList<VideoModel> videos = new ArrayList<>();
         db.collection(COLLECTION_NAME).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
@@ -106,11 +115,21 @@ public class Database extends AppCompatActivity {
                     for (DocumentSnapshot document : documents) {
                         if (document.exists()) {
                             Map<String, Object> vid = document.getData();
-                            videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
+                            MainActivity.videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
                                     vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
                             Log.d(GET_TAG,document.getId());
                         }
                     }
+                }
+                if(Auth.isLoggedIn()) {
+                    if(UserData.likedVideos == null)
+                        Database.getLikedVideos(firebaseResultListener);
+                    else
+                        firebaseResultListener.onComplete();
+                }
+                else{
+                    UserData.likedVideos = new HashSet<>();
+                    firebaseResultListener.onComplete();
                 }
             }
         });
@@ -137,8 +156,9 @@ public class Database extends AppCompatActivity {
 
     }
 
-    public static HashSet<String> getLikedVideos () {
-        HashSet<String> likedVideos = new HashSet<>();
+    public static void getLikedVideos (FirebaseResultListener firebaseResultListener) {
+        if(UserData.likedVideos == null)
+            UserData.likedVideos = new HashSet<>();
         String path = "users"+"/"+Auth.getUId()+"/"+"liked_videos";
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection(path).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
@@ -146,14 +166,14 @@ public class Database extends AppCompatActivity {
             public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                 List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
                 for (DocumentSnapshot document : documents) {
-                    likedVideos.add(document.getId());
+                    UserData.likedVideos.add(document.getId());
                 }
+                firebaseResultListener.onComplete();
             }
         });
-        return likedVideos;
     }
 
-    public static Map<String, Object> setUserData(String documentPath, Context context) {
+    public static Map<String, Object> getUserData(String documentPath, Context context, FirebaseResultListener firebaseResultListener, boolean forCurrUser) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         Map<String, Object> data = new HashMap<>();
 
@@ -167,9 +187,12 @@ public class Database extends AppCompatActivity {
                         data.put(entry.getKey(), entry.getValue());
                         Log.d("USER_DATA",entry.getKey()+"="+entry.getValue());
                     }
-                    UserData.userId = Auth.getUId();
-                    UserData.name = (String) documentData.get("name");
-                    UserData.email = (String) documentData.get("email");
+                    if(forCurrUser == true) {
+                        UserData.userId = Auth.getUId();
+                        UserData.name = (String) documentData.get("name");
+                        UserData.email = (String) documentData.get("email");
+                    }
+                    firebaseResultListener.onComplete();
                 }
                 else {
                     Toast.makeText(context, "Failed to get User data", Toast.LENGTH_SHORT).show();

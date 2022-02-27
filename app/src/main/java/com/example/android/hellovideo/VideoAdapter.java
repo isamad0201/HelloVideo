@@ -26,22 +26,10 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
     Activity context;
 
 
-    private ArrayList<VideoModel> videos;
-    private HashSet<String> likedVideos;
-
-    public VideoAdapter(ArrayList<VideoModel> videos, HashSet<String> likedVideos, Activity context) {
-        this.videos = videos;
+    public VideoAdapter(Activity context) {
         this.context = context;
-        this.likedVideos = likedVideos;
     }
 
-    public ArrayList<VideoModel> getVideos() {
-        return videos;
-    }
-
-    public void setVideos(ArrayList<VideoModel> videos) {
-        this.videos = videos;
-    }
 
     @NonNull
     @Override
@@ -54,7 +42,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull final MyViewHolder holder, int position) {
-        holder.setData(videos.get(position));
+        holder.setData(MainActivity.videos.get(position));
 
 
         holder.uploadButton.setOnClickListener(new View.OnClickListener() {
@@ -79,22 +67,22 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
 
     @Override
     public int getItemCount() {
-        return videos.size();
+        return MainActivity.videos.size();
     }
 
 
     private void updateLikeStatus (final MyViewHolder holder, int position) {
         long likes = Long.parseLong(holder.numberOfLikes.getText().toString());
-        if (likedVideos.contains(videos.get(position).getVideoId()) != true) {
+        if (UserData.likedVideos.contains(MainActivity.videos.get(position).getVideoId()) != true) {
             holder.likeButton.setBackgroundResource(R.drawable.red_like_button);
-            Database.updateLikes(true, videos.get(position).getVideoId());
-            likedVideos.add(videos.get(position).getVideoId());
+            Database.updateLikes(true, MainActivity.videos.get(position).getVideoId());
+            UserData.likedVideos.add(MainActivity.videos.get(position).getVideoId());
             likes++;
         }
         else {
             holder.likeButton.setBackgroundResource(R.drawable.like_button);
-            Database.updateLikes(false, videos.get(position).getVideoId());
-            likedVideos.remove(videos.get(position).getVideoId());
+            Database.updateLikes(false, MainActivity.videos.get(position).getVideoId());
+            UserData.likedVideos.remove(MainActivity.videos.get(position).getVideoId());
             likes--;
         }
         holder.numberOfLikes.setText(String.valueOf(likes));
@@ -120,7 +108,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
         void setData(VideoModel videoModel) {
             videoView.setVideoPath(videoModel.getVideoUrl());
             numberOfLikes.setText(String.valueOf(videoModel.getLikes()));
-            if ( likedVideos.contains(videoModel.getVideoId()) ) {
+            if (UserData.likedVideos != null && UserData.likedVideos.contains(videoModel.getVideoId()) ) {
                 likeButton.setBackgroundResource(R.drawable.red_like_button);
             }
             else {
@@ -128,6 +116,14 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.MyViewHolder
             }
 
             uploaderName.setText("@"+videoModel.getUploderName());
+            uploaderName.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(context, ProfileActivity.class);
+                    intent.putExtra("Uid", videoModel.getUploderId());
+                    context.startActivity(intent);
+                }
+            });
 
             videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
