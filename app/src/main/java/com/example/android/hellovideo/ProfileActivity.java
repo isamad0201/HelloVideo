@@ -18,13 +18,14 @@ import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
 
-    TextView nameField, emailField, UIdField;
+    TextView nameField, emailField, UIdField, textViewProfileEmail;
     ImageView profilePicture;
     Button logoutButton;
     ProgressBar progressBar;
     Boolean forMyProfile;
     Map<String, Object> data;
     String Uid ;
+    View emailDash;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,9 @@ public class ProfileActivity extends AppCompatActivity {
         UIdField = findViewById(R.id.profileUId);
         logoutButton = findViewById(R.id.logoutButton);
         profilePicture = findViewById(R.id.profilePicture);
-        progressBar = findViewById(R.id.progressBarProfileActivity);
+        textViewProfileEmail = findViewById(R.id.textViewProfileEmail);
+        emailDash = findViewById(R.id.dash3);
+//        progressBar = findViewById(R.id.progressBarProfileActivity);
         data = new HashMap<>();
         forMyProfile = true;
         Uid = "";
@@ -55,21 +58,25 @@ public class ProfileActivity extends AppCompatActivity {
 
         if(forMyProfile == true) {
             emailField.setVisibility(View.VISIBLE);
+            textViewProfileEmail.setVisibility(View.VISIBLE);
+            emailDash.setVisibility(View.VISIBLE);
         }
         else {
             emailField.setVisibility(View.GONE);
+            textViewProfileEmail.setVisibility(View.GONE);
+            emailDash.setVisibility(View.GONE);
         }
 
         String documentpath = "users"+ "/" + Uid;
-        progressBar.setVisibility(View.VISIBLE);
+//        progressBar.setVisibility(View.VISIBLE);
         Map<String, Object> dataFromCall = new HashMap<>();
 
         if(forMyProfile == false || UserData.userId == null) {
-            progressBar.setVisibility(View.VISIBLE);
+//            progressBar.setVisibility(View.VISIBLE);
             data = Database.getUserData(documentpath,ProfileActivity.this, new FirebaseResultListener() {
                 @Override
                 public void onComplete() {
-                    progressBar.setVisibility(View.INVISIBLE);
+//                    progressBar.setVisibility(View.INVISIBLE);
                     data.put("Uid", Uid);
                     setUserData();
                 }
@@ -80,7 +87,7 @@ public class ProfileActivity extends AppCompatActivity {
             data.put("name", UserData.name);
             data.put("email", UserData.email);
             data.put("Uid", Uid);
-            progressBar.setVisibility(View.INVISIBLE);
+//            progressBar.setVisibility(View.INVISIBLE);
             setUserData();
         }
 
@@ -90,8 +97,8 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Auth.logout();
-//                Intent intent = new Intent(ProfileActivity.this, MainActivity.class);
-//                startActivity(intent);
+                Intent intent = new Intent(ProfileActivity.this, MainActivity.class);
+                startActivity(intent);
                 onBackPressed();
             }
         });
