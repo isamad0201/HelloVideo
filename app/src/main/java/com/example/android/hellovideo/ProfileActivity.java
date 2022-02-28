@@ -1,32 +1,45 @@
 package com.example.android.hellovideo;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Adapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager2.widget.ViewPager2;
 
+import com.bumptech.glide.Glide;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
 
+    private static final int PICK_IMAGE = 1;
     TextView nameField, emailField, UIdField, textViewProfileEmail;
-    ImageView profilePicture;
+    ImageView profilePicture, profileImageChange, profileImageChangeCameraIcon;
     Button logoutButton;
-    ProgressBar progressBar;
+    ProgressBar profileProgressBar;
     Boolean forMyProfile;
     Map<String, Object> data;
     String Uid ;
     View emailDash;
 
+    static ViewPager2 viewPager2;
+    static ArrayList<VideoModel> videos;
+    static VideoAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,7 +57,10 @@ public class ProfileActivity extends AppCompatActivity {
         profilePicture = findViewById(R.id.profilePicture);
         textViewProfileEmail = findViewById(R.id.textViewProfileEmail);
         emailDash = findViewById(R.id.dash3);
-//        progressBar = findViewById(R.id.progressBarProfileActivity);
+        profileImageChange = findViewById(R.id.profileImageChange);
+        profileImageChangeCameraIcon = findViewById(R.id.profileImageChangeCameraIcon);
+        profileProgressBar = findViewById(R.id.profileProgress);
+
         data = new HashMap<>();
         forMyProfile = true;
         Uid = "";
@@ -60,23 +76,24 @@ public class ProfileActivity extends AppCompatActivity {
             emailField.setVisibility(View.VISIBLE);
             textViewProfileEmail.setVisibility(View.VISIBLE);
             emailDash.setVisibility(View.VISIBLE);
+            profileImageChangeCameraIcon.setVisibility(View.VISIBLE);
+            profileImageChange.setVisibility(View.VISIBLE);
         }
         else {
             emailField.setVisibility(View.GONE);
             textViewProfileEmail.setVisibility(View.GONE);
             emailDash.setVisibility(View.GONE);
+            profileImageChange.setVisibility(View.GONE);
+            profileImageChangeCameraIcon.setVisibility(View.GONE);
         }
 
         String documentpath = "users"+ "/" + Uid;
-//        progressBar.setVisibility(View.VISIBLE);
         Map<String, Object> dataFromCall = new HashMap<>();
 
         if(forMyProfile == false || UserData.userId == null) {
-//            progressBar.setVisibility(View.VISIBLE);
             data = Database.getUserData(documentpath,ProfileActivity.this, new FirebaseResultListener() {
                 @Override
                 public void onComplete() {
-//                    progressBar.setVisibility(View.INVISIBLE);
                     data.put("Uid", Uid);
                     setUserData();
                 }
@@ -87,7 +104,6 @@ public class ProfileActivity extends AppCompatActivity {
             data.put("name", UserData.name);
             data.put("email", UserData.email);
             data.put("Uid", Uid);
-//            progressBar.setVisibility(View.INVISIBLE);
             setUserData();
         }
 
@@ -102,13 +118,63 @@ public class ProfileActivity extends AppCompatActivity {
                 onBackPressed();
             }
         });
+        viewPager2 = findViewById(R.id.viewpager);
 
+        setVideos();
+
+        profileImageChange.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent galleryIntent = new Intent(Intent.ACTION_PICK,
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(galleryIntent, PICK_IMAGE);
+            }
+        });
+
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        Log.d("UPLOAD", "Img selected");
+        super.onActivityResult(requestCode, resultCode, data);
+        if(PICK_IMAGE == requestCode || resultCode == RESULT_OK || data != null || data.getData()!=null) {
+            Uri uri = data.getData();
+            if(uri.toString().contains("image")) {
+                ShowDialogBox.showSelectImageDialogBox(uri, ProfileActivity.this, new ProfilePictureUpdateResultListener() {
+                    @Override
+                    public void onComplete() {
+                        setProfilePicture(UserData.profilePictureUrl);
+                    }
+                });
+            } else {
+                Toast.makeText(ProfileActivity.this, "Choose image only", Toast.LENGTH_SHORT).show();
+            }
+
+        }
+    }
+
+    public void setProfilePicture(String url) {
+        profileProgressBar.setVisibility(View.VISIBLE);
+        if(url != null && url != "") {
+            Glide.with(this).load(url).into(profilePicture);
+        }
+        profileProgressBar.setVisibility(View.INVISIBLE);
     }
 
     private void setUserData() {
         nameField.setText((String) data.get("name"));
         UIdField.setText((String) data.get("Uid"));
         emailField.setText((String) data.get("email"));
+        String profileUrl = "";
+        if(data.containsKey("profilePictureUrl"))
+            profileUrl = (String) data.get("profilePictureUrl");
+        setProfilePicture(profileUrl);
     }
 
+    private void setVideos() {
+        videos = MainActivity.videos;
+        adapter = new VideoAdapter(ProfileActivity.this);
+        viewPager2.setAdapter(adapter);
+    }
     }

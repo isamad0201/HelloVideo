@@ -32,24 +32,25 @@ public class Database extends AppCompatActivity {
 
     private static final String GET_TAG = "GET";
     private static final String UPLOAD_TAG = "UPLOAD";
-    private static final String COLLECTION_NAME = "all_videos";
+    private static final String URL_FIELD_VIDEO = "UrlPath", URL_FIELD_IMAGE = "profilePictureUrl";
+    private static final String COLLECTION_NAME_ALL_VIDEOS = "all_videos";
     private static final String VIDEO_UPLOAD_SUCCESS_MESSAGE = "Video Uploaded Successfully";
+    private static final String PROFILE_UPLOAD_SUCCESS_MESSAGE = "Profile picture updated successfully";
 
-    public static void upload(Uri uri, Context context) {
+    public static void upload(Uri uri, Context context, boolean isVideo) {
 
         FirebaseStorage storage = FirebaseStorage.getInstance();
-        String vidUniqueId = String.valueOf(System.currentTimeMillis());
-        StorageReference storageRef = storage.getReference().child(vidUniqueId);
+        String uniqueId = String.valueOf(System.currentTimeMillis());
+        StorageReference storageRef = storage.getReference().child(uniqueId);
 
         UploadTask uploadTask = storageRef.putFile(uri);
         Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
             @Override
             public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
                 if (!task.isSuccessful()) {
-                    Log.d(UPLOAD_TAG, ">>>>>>>>>>"+String.valueOf(task.getException()));
+                    Log.d(UPLOAD_TAG, String.valueOf(task.getException()));
                     throw task.getException();
                 }
-
                 return storageRef.getDownloadUrl();
             }
         }).addOnCompleteListener(task -> {
@@ -57,34 +58,55 @@ public class Database extends AppCompatActivity {
                 Uri downloadUri = task.getResult();
                 Log.d("UPLOAD",downloadUri.toString());
 
-                Map<String, Object> vid = new HashMap<>();
-                vid.put("UrlPath", downloadUri.toString());
-                vid.put("likes", 0);
-                if(UserData.name == null) {
-                    Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                uploadUrl(downloadUri, context, uniqueId, isVideo);
+            }
+        });
+    }
+    private static void uploadImageUrl(Uri downloadUri, Context context, String uniqueId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put(URL_FIELD_IMAGE, downloadUri.toString());
+        String documentPath = "users"+"/"+Auth.getUId();
+        addDocument(documentPath, data, PROFILE_UPLOAD_SUCCESS_MESSAGE,context);
+        UserData.profilePictureUrl = downloadUri.toString();
+    }
+    private static void uploadUrl(Uri downloadUri, Context context, String uniqueId, boolean isVideo) {
+        if (! isVideo) {
+            Map<String, Object> data = new HashMap<>();
+            data.put(URL_FIELD_IMAGE, downloadUri.toString());
+            String documentPath = "users"+"/"+Auth.getUId();
+            updateFields(documentPath, data, PROFILE_UPLOAD_SUCCESS_MESSAGE,context);
+            UserData.profilePictureUrl = downloadUri.toString();
+            return;
+        }
+        Map<String, Object> vid = new HashMap<>();
+        vid.put("likes", 0);
+        vid.put(URL_FIELD_VIDEO, downloadUri.toString());
+
+        if(UserData.name == null) {
+            Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
                         @Override
                         public void onComplete() {
                             vid.put("uploaderId", UserData.userId);
                             vid.put("uploaderName", UserData.name);
-                            addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+                            addDocument(COLLECTION_NAME_ALL_VIDEOS+"/"+uniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+
                             Map<String, Object> nullMap = new HashMap<>();
-                            String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
-                            addDocument(documentPath, nullMap, "",context);
+                            String documentPath = "users"+"/"+Auth.getUId()+"/"+ "videos"+"/"+uniqueId;
+                            addDocument(documentPath, nullMap, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
                         }
                     }
                     , true);
-                }
-                else {
-                    vid.put("uploaderId", UserData.userId);
-                    vid.put("uploaderName", UserData.name);
-                    addDocument(COLLECTION_NAME+"/"+vidUniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
-                    Map<String, Object> nullMap = new HashMap<>();
-                    String documentPath = "users"+"/"+Auth.getUId()+"/"+"videos"+"/"+vidUniqueId;
-                    addDocument(documentPath, nullMap, "",context);
-                }
+        }
+        else {
+            vid.put("uploaderId", UserData.userId);
+            vid.put("uploaderName", UserData.name);
+            addDocument(COLLECTION_NAME_ALL_VIDEOS+"/"+uniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
 
-            }
-        });
+            Map<String, Object> nullMap = new HashMap<>();
+            String documentPath = "users"+"/"+Auth.getUId()+"/"+ "videos"+"/"+uniqueId;
+            addDocument(documentPath, nullMap, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+        }
+
     }
 
     public static void addDocument(String documentPath, Map<String, Object> data, String message, Context context) {
@@ -101,11 +123,29 @@ public class Database extends AppCompatActivity {
         );
     }
 
+    public static void updateFields(String documentPath, Map<String, Object> data, String message, Context context) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference documentReference = db.document(documentPath);
+        documentReference.update(data).addOnSuccessListener(
+                new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        if(message != "")
+                            Toast.makeText(context,message,Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+    }
+
+    public static void deleteFromFirebseStorage (String url) {
+        StorageReference ref = FirebaseStorage.getInstance().getReferenceFromUrl(url);
+        ref.delete();
+    }
 
     public static ArrayList getData(Context context, FirebaseResultListener firebaseResultListener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         ArrayList<VideoModel> videos = new ArrayList<>();
-        db.collection(COLLECTION_NAME).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+        db.collection(COLLECTION_NAME_ALL_VIDEOS).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
             @Override
             public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                 if (queryDocumentSnapshots.isEmpty()) {
@@ -141,7 +181,7 @@ public class Database extends AppCompatActivity {
             return;
         }
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference documentReferenceVideos = db.collection(COLLECTION_NAME).document(vidUniqueId);
+        DocumentReference documentReferenceVideos = db.collection(COLLECTION_NAME_ALL_VIDEOS).document(vidUniqueId);
         String documentPath = "users"+"/"+Auth.getUId()+"/"+"liked_videos"+"/"+vidUniqueId;
         DocumentReference documentReferenceUsers = db.document(documentPath);
 
@@ -191,6 +231,9 @@ public class Database extends AppCompatActivity {
                         UserData.userId = Auth.getUId();
                         UserData.name = (String) documentData.get("name");
                         UserData.email = (String) documentData.get("email");
+                        if (documentData.containsKey(URL_FIELD_IMAGE)) {
+                            UserData.profilePictureUrl = (String) documentData.get(URL_FIELD_IMAGE);
+                        }
                     }
                     firebaseResultListener.onComplete();
                 }

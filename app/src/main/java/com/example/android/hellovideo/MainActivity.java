@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = data.getData();
             if(uri.toString().contains("video")) {
                 Log.d("UPLOAD",uri.getPath().toString());
-                Database.upload(uri, MainActivity.this);
+                Database.upload(uri, MainActivity.this, true);
             } else {
                 Toast.makeText(MainActivity.this, "Choose video only", Toast.LENGTH_SHORT).show();
             }
