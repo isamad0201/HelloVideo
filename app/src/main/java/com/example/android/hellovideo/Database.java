@@ -2,6 +2,7 @@ package com.example.android.hellovideo;
 
 import android.content.Context;
 import android.net.Uri;
+import android.renderscript.Script;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -13,6 +14,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -20,9 +22,11 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +41,7 @@ public class Database extends AppCompatActivity {
     private static final String VIDEO_UPLOAD_SUCCESS_MESSAGE = "Video Uploaded Successfully";
     private static final String PROFILE_UPLOAD_SUCCESS_MESSAGE = "Profile picture updated successfully";
 
-    public static void upload(Uri uri, Context context, boolean isVideo) {
+    public static void uploadToStorage(Uri uri, Context context, boolean isVideo) {
 
         FirebaseStorage storage = FirebaseStorage.getInstance();
         String uniqueId = String.valueOf(System.currentTimeMillis());
@@ -58,7 +62,33 @@ public class Database extends AppCompatActivity {
                 Uri downloadUri = task.getResult();
                 Log.d("UPLOAD",downloadUri.toString());
 
-                uploadUrl(downloadUri, context, uniqueId, isVideo);
+                if(isVideo == false || UserData.name != null){
+                    uploadUrl(downloadUri, context, uniqueId, isVideo);
+                }
+                else {
+                    Database.getDocument("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                        @Override
+                        public void onComplete() {
+
+                        }
+
+                        @Override
+                        public void onComplete(DocumentSnapshot documentSnapshot) {
+                            Map<String ,Object> documentData = documentSnapshot.getData();
+                            UserData.profilePictureUrl = (String) documentData.get("profilePictureUrl");
+                            UserData.name = (String) documentData.get("name");
+                            UserData.email = (String) documentData.get("email");
+                            UserData.userId = Auth.getUId();
+                            uploadUrl(downloadUri, context, uniqueId, isVideo);
+                        }
+
+                        @Override
+                        public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
+                        }
+                    });
+                }
+
             }
         });
     }
@@ -82,20 +112,31 @@ public class Database extends AppCompatActivity {
         vid.put("likes", 0);
         vid.put(URL_FIELD_VIDEO, downloadUri.toString());
 
-        if(UserData.name == null) {
-            Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
-                        @Override
-                        public void onComplete() {
-                            vid.put("uploaderId", UserData.userId);
-                            vid.put("uploaderName", UserData.name);
-                            addDocument(COLLECTION_NAME_ALL_VIDEOS+"/"+uniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
+        vid.put("uploaderId", UserData.userId);
+        vid.put("uploaderName", UserData.name);
+        addDocument(COLLECTION_NAME_ALL_VIDEOS+"/"+uniqueId, vid, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
 
-                            Map<String, Object> nullMap = new HashMap<>();
-                            String documentPath = "users"+"/"+Auth.getUId()+"/"+ "videos"+"/"+uniqueId;
-                            addDocument(documentPath, nullMap, VIDEO_UPLOAD_SUCCESS_MESSAGE, context);
-                        }
-                    }
-                    , true);
+        if(UserData.name == null) {
+            Database.getDocument("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                @Override
+                public void onComplete() {
+
+                }
+
+                @Override
+                public void onComplete(DocumentSnapshot documentSnapshot) {
+                    Map<String ,Object> documentData = documentSnapshot.getData();
+                    UserData.profilePictureUrl = (String) documentData.get("profilePictureUrl");
+                    UserData.name = (String) documentData.get("name");
+                    UserData.email = (String) documentData.get("email");
+                    UserData.userId = Auth.getUId();
+                }
+
+                @Override
+                public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
+                }
+            });
         }
         else {
             vid.put("uploaderId", UserData.userId);
@@ -123,6 +164,7 @@ public class Database extends AppCompatActivity {
         );
     }
 
+    // Update fields
     public static void updateFields(String documentPath, Map<String, Object> data, String message, Context context) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         DocumentReference documentReference = db.document(documentPath);
@@ -142,38 +184,53 @@ public class Database extends AppCompatActivity {
         ref.delete();
     }
 
-    public static ArrayList getData(Context context, FirebaseResultListener firebaseResultListener) {
+//    public static ArrayList getData(Context context, FirebaseResultListener firebaseResultListener) {
+//        FirebaseFirestore db = FirebaseFirestore.getInstance();
+//        ArrayList<VideoModel> videos = new ArrayList<>();
+//        db.collection(COLLECTION_NAME_ALL_VIDEOS).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+//            @Override
+//            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+//                if (queryDocumentSnapshots.isEmpty()) {
+//                    Toast.makeText(context, "Failed to get data", Toast.LENGTH_SHORT).show();
+//                } else {
+//                    List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+//                    for (DocumentSnapshot document : documents) {
+//                        if (document.exists()) {
+//                            Map<String, Object> vid = document.getData();
+//                            MainActivity.videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
+//                                    vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
+//                            Log.d(GET_TAG,document.getId());
+//                        }
+//                    }
+//                }
+//                if(Auth.isLoggedIn()) {
+//                    if(UserData.likedVideos == null)
+//                        Database.getLikedVideos(firebaseResultListener);
+//                    else
+//                        firebaseResultListener.onComplete();
+//                }
+//                else{
+//                    UserData.likedVideos = new HashSet<>();
+//                    firebaseResultListener.onComplete();
+//                }
+//            }
+//        });
+//        return videos;
+//    }
+
+    public static void getCollection(String collectionPath, Context context, FirebaseResultListener firebaseResultListener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        ArrayList<VideoModel> videos = new ArrayList<>();
-        db.collection(COLLECTION_NAME_ALL_VIDEOS).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+        db.collection(collectionPath).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
             @Override
             public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                 if (queryDocumentSnapshots.isEmpty()) {
                     Toast.makeText(context, "Failed to get data", Toast.LENGTH_SHORT).show();
                 } else {
                     List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
-                    for (DocumentSnapshot document : documents) {
-                        if (document.exists()) {
-                            Map<String, Object> vid = document.getData();
-                            MainActivity.videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
-                                    vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
-                            Log.d(GET_TAG,document.getId());
-                        }
-                    }
-                }
-                if(Auth.isLoggedIn()) {
-                    if(UserData.likedVideos == null)
-                        Database.getLikedVideos(firebaseResultListener);
-                    else
-                        firebaseResultListener.onComplete();
-                }
-                else{
-                    UserData.likedVideos = new HashSet<>();
-                    firebaseResultListener.onComplete();
+                    firebaseResultListener.onComplete(documents);
                 }
             }
         });
-        return videos;
     }
 
     public static void updateLikes (boolean increment, String vidUniqueId) {
@@ -196,6 +253,7 @@ public class Database extends AppCompatActivity {
 
     }
 
+//GET collection
     public static void getLikedVideos (FirebaseResultListener firebaseResultListener) {
         if(UserData.likedVideos == null)
             UserData.likedVideos = new HashSet<>();
@@ -213,36 +271,64 @@ public class Database extends AppCompatActivity {
         });
     }
 
-    public static Map<String, Object> getUserData(String documentPath, Context context, FirebaseResultListener firebaseResultListener, boolean forCurrUser) {
+    public static void getDocument(String documentPath, Context context, FirebaseResultListener firebaseResultListener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        Map<String, Object> data = new HashMap<>();
-
         db.document(documentPath).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot documentSnapshot) {
                 if (documentSnapshot.exists()) {
-                    Map<String ,Object> documentData = documentSnapshot.getData();
-                    Log.d("USER_DATA",String.valueOf(documentData.size())+"SIZE");
-                    for (Map.Entry<String, Object> entry : documentData.entrySet()) {
-                        data.put(entry.getKey(), entry.getValue());
-                        Log.d("USER_DATA",entry.getKey()+"="+entry.getValue());
-                    }
-                    if(forCurrUser == true) {
-                        UserData.userId = Auth.getUId();
-                        UserData.name = (String) documentData.get("name");
-                        UserData.email = (String) documentData.get("email");
-                        if (documentData.containsKey(URL_FIELD_IMAGE)) {
-                            UserData.profilePictureUrl = (String) documentData.get(URL_FIELD_IMAGE);
-                        }
-                    }
-                    firebaseResultListener.onComplete();
+                    firebaseResultListener.onComplete(documentSnapshot);
                 }
                 else {
-                    Toast.makeText(context, "Failed to get User data", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Failed to get data", Toast.LENGTH_SHORT).show();
                 }
             }
         });
-        return data;
     }
+
+    public static void getSpecificDocuments(String collectionPath, List<String> documentsIds, Context context, FirebaseResultListener firebaseResultListener) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Map<String, Object> data = new HashMap<>();
+        db.collection(collectionPath).whereIn(FieldPath.documentId(), documentsIds).get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+            @Override
+            public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+                firebaseResultListener.onComplete(documents);
+            }
+        });
+    }
+
+    // Get document
+//    public static Map<String, Object> getUserData(String documentPath, Context context, FirebaseResultListener firebaseResultListener, boolean forCurrUser) {
+//        FirebaseFirestore db = FirebaseFirestore.getInstance();
+//        Map<String, Object> data = new HashMap<>();
+//
+//        db.document(documentPath).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+//            @Override
+//            public void onSuccess(DocumentSnapshot documentSnapshot) {
+//                if (documentSnapshot.exists()) {
+//                    Map<String ,Object> documentData = documentSnapshot.getData();
+//                    Log.d("USER_DATA",String.valueOf(documentData.size())+"SIZE");
+//                    for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+//                        data.put(entry.getKey(), entry.getValue());
+//                        Log.d("USER_DATA",entry.getKey()+"="+entry.getValue());
+//                    }
+//                    if(forCurrUser == true) {
+//                        UserData.userId = Auth.getUId();
+//                        UserData.name = (String) documentData.get("name");
+//                        UserData.email = (String) documentData.get("email");
+//                        if (documentData.containsKey(URL_FIELD_IMAGE)) {
+//                            UserData.profilePictureUrl = (String) documentData.get(URL_FIELD_IMAGE);
+//                        }
+//                    }
+//                    firebaseResultListener.onComplete();
+//                }
+//                else {
+//                    Toast.makeText(context, "Failed to get User data", Toast.LENGTH_SHORT).show();
+//                }
+//            }
+//        });
+//        return data;
+//    }
 
 }

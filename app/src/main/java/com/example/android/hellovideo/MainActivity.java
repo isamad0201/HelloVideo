@@ -12,14 +12,16 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Adapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.google.firebase.firestore.DocumentSnapshot;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
@@ -52,9 +54,6 @@ public class MainActivity extends AppCompatActivity {
 
         setProfileButtonListner();
 
-        addDefaultVideoUrl(videos);
-
-
     }
 
     private void setProfileButtonListner() {
@@ -74,14 +73,60 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setVideos() {
-        videos = Database.getData(MainActivity.this, new FirebaseResultListener() {
+        MainActivity.videos = new ArrayList<>();
+        Database.getCollection("all_videos", MainActivity.this, new FirebaseResultListener() {
             @Override
             public void onComplete() {
-                Collections.shuffle(videos);
-                progressBar.setVisibility(View.INVISIBLE);
-                adapter = new VideoAdapter(MainActivity.this);
-                viewPager2.setAdapter(adapter);
-                Log.d("DEBUG","in listener");
+
+            }
+
+            @Override
+            public void onComplete(DocumentSnapshot documentSnapshot) {
+
+            }
+
+            @Override
+            public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+                for (DocumentSnapshot document : documentSnapshotList) {
+                    if (document.exists()) {
+                        Map<String, Object> vid = document.getData();
+                        MainActivity.videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
+                                vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
+                    }
+                }
+
+                if(UserData.likedVideos == null && Auth.isLoggedIn() == true){
+                    Database.getLikedVideos(new FirebaseResultListener() {
+                        @Override
+                        public void onComplete() {
+                            Collections.shuffle(videos);
+                            progressBar.setVisibility(View.INVISIBLE);
+                            adapter = new VideoAdapter(MainActivity.this, videos, false, false);
+                            viewPager2.setAdapter(adapter);
+                            Log.d("DEBUG","in listener");
+                        }
+
+                        @Override
+                        public void onComplete(DocumentSnapshot documentSnapshot) {
+
+                        }
+
+                        @Override
+                        public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
+                        }
+                    });
+                }
+                else {
+                    if(Auth.isLoggedIn() == false)
+                        UserData.likedVideos = new HashSet<>();
+                    Collections.shuffle(videos);
+                    progressBar.setVisibility(View.INVISIBLE);
+                    adapter = new VideoAdapter(MainActivity.this, videos, false, false);
+                    viewPager2.setAdapter(adapter);
+                    Log.d("DEBUG","in listener");
+                }
+
             }
         });
     }
@@ -98,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = data.getData();
             if(uri.toString().contains("video")) {
                 Log.d("UPLOAD",uri.getPath().toString());
-                Database.upload(uri, MainActivity.this, true);
+                Database.uploadToStorage(uri, MainActivity.this, true);
             } else {
                 Toast.makeText(MainActivity.this, "Choose video only", Toast.LENGTH_SHORT).show();
             }
@@ -110,17 +155,8 @@ public class MainActivity extends AppCompatActivity {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK,
                 android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
         context.startActivityForResult(galleryIntent, PICK_FILE);
-
-        // its onActivityResult() is in MainActivity
     }
 
-    private void addDefaultVideoUrl (ArrayList videos) {
-//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","", 0,"u1",""));
-//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4","", 0,"u2",""));
-//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4","", 0,"u3",""));
-//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4","", 0,"u4",""));
-//        videos.add(new VideoModel("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4","", 0,"u5",""));
-    }
 
 
 }

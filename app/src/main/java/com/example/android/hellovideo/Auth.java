@@ -12,8 +12,10 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Auth {
@@ -35,6 +37,7 @@ public class Auth {
                             Map<String, Object> data = new HashMap<>();
                             data.put("email", email);
                             data.put("name", name);
+                            data.put("profilePictureUrl", "");
                             String documentPath = COLLECTION_USER+"/"+user.getUid();
                             Database.addDocument(documentPath, data, "SignedUp Successfully", context);
                             UserData.name = name;
@@ -52,25 +55,49 @@ public class Auth {
 
 
     public static void login(String email, String password, Context context, Activity activity) {
+
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener((Activity) context, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
                             Log.d("TAG", "signInWithEmail:success");
                             Toast.makeText(context, "Logged in successfully",Toast.LENGTH_SHORT).show();
-                            Database.getUserData("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
+                            Database.getDocument("users" + "/" + Auth.getUId(), context, new FirebaseResultListener() {
                                 @Override
                                 public void onComplete() {
 
                                 }
-                            }
-                            , true);
+
+                                @Override
+                                public void onComplete(DocumentSnapshot documentSnapshot) {
+                                    Map<String ,Object> documentData = documentSnapshot.getData();
+                                    UserData.profilePictureUrl = (String) documentData.get("profilePictureUrl");
+                                    UserData.name = (String) documentData.get("name");
+                                    UserData.email = (String) documentData.get("email");
+                                    UserData.userId = Auth.getUId();
+                                }
+
+                                @Override
+                                public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
+                                }
+                            });
+
                             Database.getLikedVideos(new FirebaseResultListener() {
                                 @Override
                                 public void onComplete() {
                                     MainActivity.adapter.notifyDataSetChanged();
+                                }
+
+                                @Override
+                                public void onComplete(DocumentSnapshot documentSnapshot) {
+
+                                }
+
+                                @Override
+                                public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
                                 }
                             });
                         } else {

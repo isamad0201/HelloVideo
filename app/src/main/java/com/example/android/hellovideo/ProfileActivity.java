@@ -1,6 +1,7 @@
 package com.example.android.hellovideo;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,20 +10,32 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Adapter;
 import android.widget.Button;
+import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -37,9 +50,12 @@ public class ProfileActivity extends AppCompatActivity {
     String Uid ;
     View emailDash;
 
-    static ViewPager2 viewPager2;
-    static ArrayList<VideoModel> videos;
-    static VideoAdapter adapter;
+    RecyclerView recyclerView;
+    ArrayList<VideoModel> videos;
+    VideoAdapter adapter;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,19 +107,33 @@ public class ProfileActivity extends AppCompatActivity {
         Map<String, Object> dataFromCall = new HashMap<>();
 
         if(forMyProfile == false || UserData.userId == null) {
-            data = Database.getUserData(documentpath,ProfileActivity.this, new FirebaseResultListener() {
+            Database.getDocument(documentpath,ProfileActivity.this, new FirebaseResultListener() {
                 @Override
                 public void onComplete() {
-                    data.put("Uid", Uid);
-                    setUserData();
+
                 }
-            }
-            , forMyProfile);
+
+                        @Override
+                        public void onComplete(DocumentSnapshot documentSnapshot) {
+                            Map<String ,Object> documentData = documentSnapshot.getData();
+                            for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+                                data.put(entry.getKey(), entry.getValue());
+                            }
+                            data.put("Uid", Uid);
+                            setUserData();
+                        }
+
+                        @Override
+                        public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+
+                        }
+                    });
         }
         else {
             data.put("name", UserData.name);
             data.put("email", UserData.email);
             data.put("Uid", Uid);
+            data.put("profilePictureUrl", UserData.profilePictureUrl);
             setUserData();
         }
 
@@ -118,9 +148,9 @@ public class ProfileActivity extends AppCompatActivity {
                 onBackPressed();
             }
         });
-        viewPager2 = findViewById(R.id.viewpager);
-
-        setVideos();
+        recyclerView = findViewById(R.id.recycleView);
+//        setVideos();
+        getVideosId();
 
         profileImageChange.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -157,9 +187,24 @@ public class ProfileActivity extends AppCompatActivity {
     public void setProfilePicture(String url) {
         profileProgressBar.setVisibility(View.VISIBLE);
         if(url != null && url != "") {
-            Glide.with(this).load(url).into(profilePicture);
+//            Glide.with(this).load(url).into(profilePicture);
+            Glide.with(this).load(url).addListener(new RequestListener<Drawable>() {
+                @Override
+                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                    profileProgressBar.setVisibility(View.GONE);
+                    return false;
+                }
+
+                @Override
+                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                    profileProgressBar.setVisibility(View.GONE);
+                    return false;
+                }
+            }).placeholder(R.drawable.ic_baseline_account_circle_24)
+                    .transform(new CircleCrop())
+                    .into(profilePicture);
         }
-        profileProgressBar.setVisibility(View.INVISIBLE);
+        profileProgressBar.setVisibility(View.GONE);
     }
 
     private void setUserData() {
@@ -173,8 +218,63 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void setVideos() {
-        videos = MainActivity.videos;
-        adapter = new VideoAdapter(ProfileActivity.this);
-        viewPager2.setAdapter(adapter);
+        adapter = new VideoAdapter(ProfileActivity.this, videos, true, false);
+        GridLayoutManager layoutManager=new GridLayoutManager(this,2);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
     }
+
+    private void getVideos(List<String> documentsIds) {
+        Database.getSpecificDocuments("all_videos", documentsIds, ProfileActivity.this, new FirebaseResultListener() {
+            @Override
+            public void onComplete() {
+
+            }
+
+            @Override
+            public void onComplete(DocumentSnapshot documentSnapshot) {
+
+            }
+
+            @Override
+            public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+                videos = new ArrayList<VideoModel>();
+                for(DocumentSnapshot document : documentSnapshotList) {
+                    if(document.exists()) {
+                        Map<String, Object> vid = document.getData();
+                        videos.add(new VideoModel(vid.get("UrlPath").toString(), document.getId(), (long) vid.get("likes"),
+                                vid.get("uploaderName").toString(), vid.get("uploaderId").toString()));
+                        Log.d("ProfileVid", document.getId());
+                        Log.d("ProfileVid", vid.get("UrlPath").toString());
+                    }
+                }
+                setVideos();
+            }
+        });
+    }
+
+    private void getVideosId() {
+        Database.getCollection("users" + "/" + Uid + "/" + "videos", ProfileActivity.this, new FirebaseResultListener() {
+            @Override
+            public void onComplete() {
+
+            }
+
+            @Override
+            public void onComplete(DocumentSnapshot documentSnapshot) {
+
+            }
+
+            @Override
+            public void onComplete(List<DocumentSnapshot> documentSnapshotList) {
+                List<String> documentIds = new LinkedList<>();
+                for(DocumentSnapshot document : documentSnapshotList) {
+                    documentIds.add(document.getId());
+                }
+                getVideos(documentIds);
+            }
+        });
+    }
+
+
     }
